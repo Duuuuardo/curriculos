@@ -1,0 +1,122 @@
+<% lang = resume[:language] %>
+<% header = resume[:header] %>
+<% experiences = resume[:experiences].select { |e| e[:included] } %>
+<% projects = resume[:projects].select { |p| p[:included] } %>
+<% educations = resume[:educations].select { |e| e[:included] } %>
+<% certifications = resume[:certifications].select { |c| c[:included] } %>
+<% skill_groups = resume[:skill_groups].map { |g| g.merge(skills: g[:skills].select { |s| s[:included] }) }.reject { |g| g[:skills].empty? } %>
+<% languages = resume[:languages].map { |l| l[:level].present? ? "#{l[:name]} (#{l[:level]})" : l[:name] }.join(", ") %>
+<% contacts = [ header[:location], header[:email], header[:phone], header[:linkedin], header[:github], header[:website] ].compact_blank %>
+<% education_title = educations.any? && languages.present? ? resume_heading(lang, :educationAndLanguages) : resume_heading(lang, educations.any? ? :education : :languages) %>
+
+<article class="resume" style="--accent: <%= resume[:accent_color] %>">
+  <style>@page { size: <%= resume[:paper_size] == "a4" ? "A4" : "letter" %>; margin: 0.55in 0.7in; }</style>
+  <header class="resume-header">
+    <h1><%= header[:full_name].presence || "Seu nome" %></h1>
+    <% if header[:headline].present? %>
+      <p class="resume-headline"><%= highlight_terms(header[:headline], terms) %></p>
+    <% end %>
+    <% if contacts.any? %>
+      <p class="resume-contacts"><% contacts.each do |contact| %><span><%= resume_contact(contact) %></span><% end %></p>
+    <% end %>
+  </header>
+
+  <% if resume[:summary].present? %>
+    <section class="resume-section">
+      <h2><%= resume_heading(lang, :summary) %></h2>
+      <% resume[:summary].split(/\n\s*\n/).each do |paragraph| %>
+        <p><%= highlight_terms(paragraph, terms) %></p>
+      <% end %>
+    </section>
+  <% end %>
+
+  <% if skill_groups.any? %>
+    <section class="resume-section">
+      <h2><%= resume_heading(lang, :skills) %></h2>
+      <% skill_groups.each do |group| %>
+        <p class="resume-skill-line">
+          <% if group[:category].present? %><strong><%= group[:category] %>: </strong><% end %>
+          <% group[:skills].each_with_index do |skill, i| %><%= ", " if i.positive? %><%= highlight_terms(skill[:name], terms) %><%= " (#{skill[:level]})" if skill[:level].present? %><% end %>
+        </p>
+      <% end %>
+    </section>
+  <% end %>
+
+  <% if experiences.any? %>
+    <section class="resume-section">
+      <h2><%= resume_heading(lang, :experience) %></h2>
+      <% experiences.each do |entry| %>
+        <div class="resume-entry">
+          <div class="resume-entry-head">
+            <span><strong><%= highlight_terms(entry[:item][:role].presence || entry[:item][:company], terms) %></strong><% if entry[:item][:role].present? && entry[:item][:company].present? %><span class="resume-company"> · <%= highlight_terms(entry[:item][:company], terms) %></span><% end %></span>
+            <em><%= [ entry[:item][:location], format_period(lang, entry[:item][:start_date], entry[:item][:end_date], entry[:item][:current]) ].compact_blank.join(" · ") %></em>
+          </div>
+          <% visible = entry[:bullets].select { |b| b[:included] } %>
+          <% if visible.any? %>
+            <ul>
+              <% visible.each do |bullet| %>
+                <li><%= highlight_terms(bullet[:text], terms) %></li>
+              <% end %>
+            </ul>
+          <% end %>
+        </div>
+      <% end %>
+    </section>
+  <% end %>
+
+  <% if projects.any? %>
+    <section class="resume-section">
+      <h2><%= resume_heading(lang, :projects) %></h2>
+      <% projects.each do |entry| %>
+        <% item = entry[:item] %>
+        <% inline = item[:description].length <= 70 && !item[:description].include?("\n") %>
+        <% has_stack_bullet = entry[:bullets].any? { |b| b[:included] && b[:text].match?(/\A(stack|tecnologias|technologies)\b/i) } %>
+        <% stack = !has_stack_bullet && item[:skills].any? ? "#{resume_heading(lang, :stack)}: #{item[:skills].join(', ')}" : nil %>
+        <% visible = entry[:bullets].select { |b| b[:included] } %>
+        <div class="resume-entry">
+          <div class="resume-entry-head">
+            <strong><%= item[:name] %><% if inline && item[:description].present? %> · <%= highlight_terms(item[:description], terms) %><% end %></strong>
+            <% if resume_href(item[:url]) %><em><%= link_to strip_protocol(item[:url]), resume_href(item[:url]), target: "_blank", rel: "noopener" %></em><% end %>
+          </div>
+          <% unless inline %><p><%= highlight_terms(item[:description], terms) %></p><% end %>
+          <% if visible.any? || stack %>
+            <ul>
+              <% visible.each do |bullet| %>
+                <li><%= highlight_terms(bullet[:text], terms) %></li>
+              <% end %>
+              <% if stack %><li><%= highlight_terms(stack, terms) %></li><% end %>
+            </ul>
+          <% end %>
+        </div>
+      <% end %>
+    </section>
+  <% end %>
+
+  <% if educations.any? || languages.present? %>
+    <section class="resume-section">
+      <h2><%= education_title %></h2>
+      <% educations.each do |entry| %>
+        <% item = entry[:item] %>
+        <% course = [ item[:degree], item[:field] ].compact_blank.join(" #{resume_heading(lang, :fieldJoiner)} ") %>
+        <% years = format_years(item[:start_date], item[:end_date]) %>
+        <div class="resume-education">
+          <p>
+            <%= highlight_terms([ course, item[:institution], years ].compact_blank.join(", "), terms) %><%= " (#{resume_heading(lang, :inProgress)})" if years.present? && future_month?(item[:end_date]) %>
+          </p>
+          <% if item[:description].present? %><p class="resume-note"><%= highlight_terms(item[:description], terms) %></p><% end %>
+        </div>
+      <% end %>
+      <% if languages.present? %><p><%= languages %></p><% end %>
+    </section>
+  <% end %>
+
+  <% if certifications.any? %>
+    <section class="resume-section">
+      <h2><%= resume_heading(lang, :certifications) %></h2>
+      <% certifications.each do |entry| %>
+        <% item = entry[:item] %>
+        <p><%= highlight_terms(item[:name], terms) %><%= ", #{item[:issuer]}" if item[:issuer].present? %><%= ", #{format_month(lang, item[:date])}" if item[:date].present? %><% if resume_href(item[:url]) %> · <%= link_to strip_protocol(item[:url]), resume_href(item[:url]), target: "_blank", rel: "noopener" %><% end %></p>
+      <% end %>
+    </section>
+  <% end %>
+</article>

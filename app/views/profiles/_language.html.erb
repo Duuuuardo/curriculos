@@ -1,0 +1,6 @@
+<% np = "profile[languages][#{key}]" %>
+<% if record.persisted? %><input type="hidden" name="<%= np %>[id]" value="<%= record.id %>"><% end %>
+<div class="grid">
+  <label class="field"><span>Idioma</span><%= text_field_tag "#{np}[name]", record.name %></label>
+  <label class="field"><span>Nível</span><%= text_field_tag "#{np}[level]", record.level, placeholder: "Ex.: Fluente" %></label>
+</div>

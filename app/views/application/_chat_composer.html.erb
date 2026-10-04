@@ -1,0 +1,9 @@
+<%# Composer do chat (página Assistente, turbo stream e popup). job_id mantém o contexto da vaga. %>
+<div id="chat-composer">
+  <%= form_with url: assistant_path, class: "chat-form", data: { action: "turbo:submit-start->chat#sending" } do %>
+    <% if local_assigns[:job_id].present? %><input type="hidden" name="job_id" value="<%= job_id %>"><% end %>
+    <textarea name="content" rows="2" placeholder="Escreva sua mensagem… (Enter envia, Shift+Enter quebra linha)"
+              autocomplete="off" data-chat-target="input" data-action="keydown->chat#keydown" required></textarea>
+    <button type="submit" class="primary" data-chat-target="send"><%= icon "send", size: 14 %> Enviar</button>
+  <% end %>
+</div>

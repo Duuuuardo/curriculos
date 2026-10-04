@@ -1,0 +1,74 @@
+<div class="jobs">
+  <div class="toolbar">
+    <div class="filters">
+      <%= link_to "Todas", jobs_path, class: "chip#{" active" if @filter.nil?}" %>
+      <% Job::STATUSES.each do |status| %>
+        <%= link_to status_label(status), jobs_path(status: status),
+                    class: "chip#{" active" if @filter == status}" %>
+      <% end %>
+    </div>
+    <%= link_to jobs_path(new: 1, status: @filter), class: "button primary" do %>
+      <%= icon "plus" %> Nova vaga
+    <% end %>
+  </div>
+
+  <details class="card" <%= "open" if @show_form %>>
+    <summary>Cadastrar nova vaga</summary>
+    <%= form_with model: @job || Job.new, url: jobs_path,
+                  data: { controller: "job-extract", job_extract_url_value: ai_extract_job_path } do |f| %>
+      <% if @job&.errors&.any? %>
+        <p class="error-text"><%= @job.errors.full_messages.to_sentence %></p>
+      <% end %>
+      <div class="grid">
+        <label class="field"><span>Título da vaga *</span>
+          <%= f.text_field :title, required: true, autofocus: @show_form, data: { job_extract_target: "title" } %>
+        </label>
+        <label class="field"><span>Empresa</span>
+          <%= f.text_field :company, data: { job_extract_target: "company" } %>
+        </label>
+        <label class="field"><span>Link da vaga</span>
+          <%= f.text_field :url, data: { job_extract_target: "url" } %>
+        </label>
+        <label class="field"><span>Idioma do currículo</span>
+          <%= f.select :language, [ [ "Detectar pelo texto da vaga", "" ], [ "Português", "pt" ], [ "Inglês", "en" ] ],
+                       {}, data: { job_extract_target: "language" } %>
+        </label>
+      </div>
+      <label class="field"><span>Descrição completa da vaga</span>
+        <%= f.text_area :description, rows: 12, data: { job_extract_target: "description" },
+                        placeholder: "Cole aqui o texto inteiro da vaga: responsabilidades, requisitos, diferenciais…" %>
+      </label>
+      <div class="row-between">
+        <%= turbo_frame_tag "ai-extract", src: ai_status_path(kind: "extract", frame: "ai-extract") do %>
+          <p class="muted small">Verificando IA…</p>
+        <% end %>
+        <%= f.submit "Criar e analisar", class: "primary", data: { turbo_submits_with: "Analisando…" } %>
+      </div>
+    <% end %>
+  </details>
+
+  <% if @jobs.empty? && !@show_form %>
+    <div class="empty card">
+      <h2>Nenhuma vaga ainda</h2>
+      <p>Copie a descrição de uma vaga (LinkedIn, Gupy, site da empresa…) e cole aqui para gerar um currículo sob medida.</p>
+      <%= link_to "Adicionar primeira vaga", jobs_path(new: 1), class: "button primary" %>
+    </div>
+  <% end %>
+
+  <ul class="job-list">
+    <% @visible.each do |job| %>
+      <li>
+        <%= link_to job_path(job), class: "card job-card" do %>
+          <%= score_badge(@scores[job.id]) %>
+          <div class="job-card-body">
+            <strong><%= job.title %></strong>
+            <span class="muted"><%= job.company.presence || "Empresa não informada" %></span>
+          </div>
+          <span class="lang-badge" title="Currículo em <%= language_label(job.language).downcase %>"><%= job.language.upcase %></span>
+          <span class="status status-<%= job.status %>"><%= status_label(job.status) %></span>
+          <span class="muted small"><%= job.updated_at.strftime("%d/%m/%Y") %></span>
+        <% end %>
+      </li>
+    <% end %>
+  </ul>
+</div>

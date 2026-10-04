@@ -1,0 +1,37 @@
+<% content_for :title, "Assistente — Currículos sob medida" %>
+
+<section class="card chat" data-controller="chat">
+  <div class="chat-head">
+    <div>
+      <h2>Assistente</h2>
+      <p class="muted small">Crie vagas, adapte currículos e gerencie seu perfil conversando.</p>
+    </div>
+    <% if @messages.any? %>
+      <%= button_to "Limpar conversa", assistant_path, method: :delete, class: "small",
+                    form: { data: { turbo_confirm: "Apagar todo o histórico do chat?" } } %>
+    <% end %>
+  </div>
+
+  <% unless @ai_ready %>
+    <p class="chat-offline">A IA não está configurada. Defina um provedor nas
+      <%= link_to "Configurações", edit_settings_path %> (Ollama grátis, ou API da OpenAI/Anthropic/Gemini).</p>
+  <% end %>
+
+  <div class="chat-log" id="chat-log" data-chat-target="log">
+    <% if @messages.empty? %>
+      <div class="chat-empty" id="chat-empty">
+        <p><strong>Exemplos do que você pode pedir:</strong></p>
+        <ul>
+          <li>Cadastra essa vaga pra mim: <em>(cole o anúncio)</em></li>
+          <li>Adapta meu currículo pra vaga de <em>(nome da vaga)</em></li>
+          <li>Gera uma carta de apresentação pra essa vaga</li>
+          <li>Marca a vaga <em>(nome)</em> como entrevista</li>
+          <li>Muda meu título profissional pra <em>(novo título)</em></li>
+        </ul>
+      </div>
+    <% end %>
+    <%= render @messages %>
+  </div>
+
+  <%= render "chat_composer", job_id: nil %>
+</section>

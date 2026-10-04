@@ -1,0 +1,16 @@
+<%= turbo_stream.remove "chat-empty" %>
+<% if @message&.persisted? %>
+  <%= turbo_stream.append "chat-log" do %>
+    <%= render @message %>
+    <%= render @reply %>
+  <% end %>
+<% else %>
+  <%= turbo_stream.append "chat-log" do %>
+    <div class="chat-msg assistant"><div class="chat-bubble"><p>Escreva uma mensagem antes de enviar.</p></div></div>
+  <% end %>
+<% end %>
+<%= turbo_stream.replace "chat-composer" do %>
+  <%= render "chat_composer", job_id: @job_id %>
+<% end %>
+<%# A IA alterou a vaga em foco? Recarrega (morph) pra refletir no currículo na hora. %>
+<%= turbo_stream.refresh if @touched_jobs&.any? %>

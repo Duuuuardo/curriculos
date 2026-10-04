@@ -1,0 +1,56 @@
+<% np = "profile[experiences][#{key}]" %>
+<% if record.persisted? %><input type="hidden" name="<%= np %>[id]" value="<%= record.id %>"><% end %>
+<div data-controller="conditional">
+  <div class="grid">
+    <label class="field"><span>Cargo</span><%= text_field_tag "#{np}[role]", record.role %></label>
+    <label class="field"><span>Empresa</span><%= text_field_tag "#{np}[company]", record.company %></label>
+    <label class="field"><span>Local</span><%= text_field_tag "#{np}[location]", record.location %></label>
+    <div class="grid-2">
+      <label class="field"><span>Início</span><%= month_field_tag "#{np}[start_date]", record.start_date %></label>
+      <label class="field" data-conditional-target="collapsible"><span>Fim</span><%= month_field_tag "#{np}[end_date]", record.end_date %></label>
+    </div>
+  </div>
+  <label class="checkbox">
+    <input type="hidden" name="<%= np %>[current]" value="0">
+    <input type="checkbox" name="<%= np %>[current]" value="1" <%= "checked" if record.current %>
+           data-conditional-target="trigger" data-action="conditional#toggle">
+    <span>Trabalho aqui atualmente</span>
+  </label>
+</div>
+
+<div class="field" data-controller="bullets">
+  <span>Atividades e conquistas (um tópico por item; use números e resultados!)</span>
+  <div class="bullets" data-bullets-target="list">
+    <% record.bullets.each do |bullet| %>
+      <div class="bullet-row">
+        <input type="hidden" name="<%= np %>[bullets][][id]" value="<%= bullet["id"] %>">
+        <textarea rows="2" name="<%= np %>[bullets][][text]"><%= bullet["text"] %></textarea>
+        <button type="button" class="icon danger" title="Remover" aria-label="Remover" data-action="bullets#remove"><%= icon "x", size: 14 %></button>
+      </div>
+    <% end %>
+    <input type="hidden" name="<%= np %>[bullets][][text]" value="">
+  </div>
+  <button type="button" class="small" data-action="bullets#add"><%= icon "plus", size: 13 %> Tópico</button>
+  <template data-bullets-target="template">
+    <div class="bullet-row">
+      <input type="hidden" name="<%= np %>[bullets][][id]" value="">
+      <textarea rows="2" name="<%= np %>[bullets][][text]"></textarea>
+      <button type="button" class="icon danger" title="Remover" aria-label="Remover" data-action="bullets#remove"><%= icon "x", size: 14 %></button>
+    </div>
+  </template>
+</div>
+
+<div class="field" data-controller="tags">
+  <span>Tecnologias / competências usadas</span>
+  <div class="tags">
+    <input type="hidden" name="<%= np %>[skills][]" value="">
+    <% record.skills.each do |skill| %>
+      <span class="tag"><%= skill %>
+        <input type="hidden" name="<%= np %>[skills][]" value="<%= skill %>">
+        <button type="button" title="Remover" aria-label="Remover" data-action="tags#remove"><%= icon "x", size: 12 %></button>
+      </span>
+    <% end %>
+    <input data-tags-target="input" data-name="<%= np %>[skills][]" placeholder="Digite e pressione Enter"
+           data-action="keydown->tags#commit blur->tags#commit">
+  </div>
+</div>

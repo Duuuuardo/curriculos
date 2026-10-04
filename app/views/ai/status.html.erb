@@ -1,0 +1,30 @@
+<turbo-frame id="<%= params[:frame] || "ai-#{@kind}" %>">
+  <% if @available %>
+    <% case @kind %>
+    <% when "summary", "cover_letter" %>
+      <%= button_to ai_generate_job_path(@job, kind: @kind),
+                    class: "small ai", form: { data: { turbo_frame: "_top" } },
+                    data: { turbo_submits_with: "Gerando… (pode levar um minuto)" } do %>
+        <%= icon "sparkles", size: 13 %> <%= @kind == "summary" ? "Gerar resumo com IA" : "Gerar carta com IA" %>
+      <% end %>
+    <% when "match" %>
+      <%= button_to ai_match_job_path(@job),
+                    class: "small ai", form: { data: { turbo_frame: "_top" } },
+                    data: { turbo_submits_with: "Analisando… (pode levar um minuto)" } do %>
+        <%= icon "sparkles", size: 13 %> <%= @job&.ai_analysis.present? ? "Refazer análise com IA" : "Analisar aderência com IA" %>
+      <% end %>
+    <% when "adapt" %>
+      <%= button_to ai_adapt_job_path(@job),
+                    class: "small ai", form: { data: { turbo_frame: "_top" } },
+                    title: "Reescreve título/resumo e liga/desliga itens seguindo o parecer",
+                    data: { turbo_submits_with: "Aplicando…" } do %>
+        <%= icon "sparkles", size: 13 %> Aplicar sugestões no currículo
+      <% end %>
+    <% when "extract" %>
+      <button type="button" class="small ai" data-action="job-extract#run"><%= icon "sparkles", size: 13 %> Preencher com IA</button>
+    <% end %>
+  <% else %>
+    <p class="muted small">IA opcional: configure um provedor em
+      <a href="/settings/edit">Configurações</a> (Ollama grátis no seu PC, ou API) para gerar textos automaticamente.</p>
+  <% end %>
+</turbo-frame>

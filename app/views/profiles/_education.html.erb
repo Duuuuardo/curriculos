@@ -1,0 +1,12 @@
+<% np = "profile[educations][#{key}]" %>
+<% if record.persisted? %><input type="hidden" name="<%= np %>[id]" value="<%= record.id %>"><% end %>
+<div class="grid">
+  <label class="field"><span>Instituição</span><%= text_field_tag "#{np}[institution]", record.institution %></label>
+  <label class="field"><span>Grau</span><%= text_field_tag "#{np}[degree]", record.degree, placeholder: "Ex.: Bacharelado" %></label>
+  <label class="field"><span>Curso</span><%= text_field_tag "#{np}[field]", record.field %></label>
+  <div class="grid-2">
+    <label class="field"><span>Início</span><%= month_field_tag "#{np}[start_date]", record.start_date %></label>
+    <label class="field"><span>Fim (ou previsão)</span><%= month_field_tag "#{np}[end_date]", record.end_date %></label>
+  </div>
+</div>
+<label class="field"><span>Observações</span><%= text_area_tag "#{np}[description]", record.description, rows: 2 %></label>

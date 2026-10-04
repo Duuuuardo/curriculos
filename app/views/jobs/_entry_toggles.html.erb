@@ -1,0 +1,29 @@
+<% if entries.any? %>
+<div class="toggle-group">
+  <h3><%= title %></h3>
+  <% entries.each do |entry| %>
+    <div class="toggle-entry">
+      <label class="checkbox">
+        <input type="hidden" name="job[overrides][<%= entry[:key] %>]" value="0">
+        <input type="checkbox" name="job[overrides][<%= entry[:key] %>]" value="1"
+               <%= "checked" if entry[:included] %> data-action="autosave#change">
+        <span><%= entry_label(entry[:item]) %></span>
+      </label>
+      <% if entry[:included] && entry[:bullets].present? %>
+        <ul class="bullet-toggles">
+          <% entry[:bullets].each do |bullet| %>
+            <li class="<%= "relevant" if bullet[:score].positive? %>">
+              <label class="checkbox">
+                <input type="hidden" name="job[overrides][<%= bullet[:key] %>]" value="0">
+                <input type="checkbox" name="job[overrides][<%= bullet[:key] %>]" value="1"
+                       <%= "checked" if bullet[:included] %> data-action="autosave#change">
+                <span><%= bullet[:text] %></span>
+              </label>
+            </li>
+          <% end %>
+        </ul>
+      <% end %>
+    </div>
+  <% end %>
+</div>
+<% end %>

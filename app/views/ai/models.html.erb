@@ -1,0 +1,24 @@
+<turbo-frame id="ai-models">
+  <% if @provider == "ollama" %>
+    <select name="settings[ollama_model]" data-action="autosave#change">
+      <option value="">Primeiro disponível</option>
+      <% (@models + [ @current ].compact_blank).uniq.each do |model| %>
+        <option value="<%= model %>" <%= "selected" if model == @current %>><%= model %></option>
+      <% end %>
+    </select>
+    <% if @models.empty? %>
+      <small class="muted">Nenhum modelo encontrado. Rode <code>ollama pull llama3.2</code>.</small>
+    <% end %>
+  <% elsif @models.any? %>
+    <select name="settings[ai_model]" data-action="autosave#change">
+      <option value="">Padrão do provedor</option>
+      <% (@models + [ @current ].compact_blank).uniq.each do |model| %>
+        <option value="<%= model %>" <%= "selected" if model == @current %>><%= model %></option>
+      <% end %>
+    </select>
+  <% else %>
+    <input type="text" name="settings[ai_model]" value="<%= @current %>"
+           placeholder="ex.: gpt-4o-mini, claude-haiku-4-5, gemini-2.0-flash" data-action="autosave#blur">
+    <small class="muted">Não consegui listar modelos — digite o nome exato.</small>
+  <% end %>
+</turbo-frame>

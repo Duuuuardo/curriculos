@@ -1,0 +1,145 @@
+{
+  "version": 1,
+  "profile": {
+    "full_name": "Ana Souza",
+    "headline": "Desenvolvedora Full Stack",
+    "email": "ana.souza@email.com",
+    "phone": "(11) 98765-4321",
+    "location": "São Paulo, SP",
+    "linkedin": "linkedin.com/in/anasouza",
+    "github": "github.com/anasouza",
+    "website": "",
+    "summary": "Desenvolvedora full stack com 5 anos de experiência construindo produtos web, do back-end ao front-end, com foco em qualidade e entrega contínua.",
+    "experiences": [
+      {
+        "id": 1,
+        "company": "Loja Rápida",
+        "role": "Desenvolvedora Full Stack Pleno",
+        "location": "São Paulo, SP (híbrido)",
+        "start_date": "2022-03",
+        "end_date": "",
+        "current": true,
+        "bullets": [
+          { "id": "b1", "text": "Desenvolvi APIs REST em Ruby on Rails que atendem 2 milhões de requisições por dia no checkout do e-commerce." },
+          { "id": "b2", "text": "Migrei o front-end legado em jQuery para React com TypeScript, reduzindo o tempo de carregamento em 40%." },
+          { "id": "b3", "text": "Implantei pipeline de CI/CD com GitHub Actions e Docker, diminuindo o tempo de deploy de 1 hora para 10 minutos." },
+          { "id": "b4", "text": "Otimizei consultas no PostgreSQL e adicionei cache com Redis, reduzindo a latência p95 em 35%." },
+          { "id": "b5", "text": "Conduzi code reviews e mentoria de 3 desenvolvedores júnior." },
+          { "id": "b6", "text": "Participei das cerimônias Scrum e do planejamento trimestral de OKRs do time de pagamentos." }
+        ],
+        "skills": ["Ruby on Rails", "React", "TypeScript", "PostgreSQL", "Redis", "Docker", "GitHub Actions", "Sidekiq"]
+      },
+      {
+        "id": 2,
+        "company": "AgênciaWeb",
+        "role": "Desenvolvedora Júnior",
+        "location": "Campinas, SP",
+        "start_date": "2020-01",
+        "end_date": "2022-02",
+        "current": false,
+        "bullets": [
+          { "id": "b7", "text": "Criei sites institucionais e landing pages com HTML, CSS e JavaScript para mais de 20 clientes." },
+          { "id": "b8", "text": "Desenvolvi integrações com APIs de pagamento e CRM usando Node.js." },
+          { "id": "b9", "text": "Escrevi testes automatizados com Jest, aumentando a cobertura de 20% para 70%." },
+          { "id": "b10", "text": "Atendi clientes para levantamento de requisitos e apresentação de entregas." }
+        ],
+        "skills": ["JavaScript", "Node.js", "Jest", "HTML", "CSS", "MySQL"]
+      }
+    ],
+    "educations": [
+      {
+        "id": 1,
+        "institution": "Universidade Estadual de Campinas",
+        "degree": "Bacharelado",
+        "field": "Ciência da Computação",
+        "start_date": "2016-02",
+        "end_date": "2019-12",
+        "description": ""
+      }
+    ],
+    "skills": [
+      { "id": 1, "name": "Ruby", "category": "Linguagens", "level": "" },
+      { "id": 2, "name": "JavaScript", "category": "Linguagens", "level": "" },
+      { "id": 3, "name": "TypeScript", "category": "Linguagens", "level": "" },
+      { "id": 4, "name": "Python", "category": "Linguagens", "level": "" },
+      { "id": 5, "name": "SQL", "category": "Linguagens", "level": "" },
+      { "id": 6, "name": "Ruby on Rails", "category": "Frameworks", "level": "" },
+      { "id": 7, "name": "React", "category": "Frameworks", "level": "" },
+      { "id": 8, "name": "Node.js", "category": "Frameworks", "level": "" },
+      { "id": 9, "name": "Next.js", "category": "Frameworks", "level": "" },
+      { "id": 10, "name": "PostgreSQL", "category": "Banco de dados", "level": "" },
+      { "id": 11, "name": "Redis", "category": "Banco de dados", "level": "" },
+      { "id": 12, "name": "MySQL", "category": "Banco de dados", "level": "" },
+      { "id": 13, "name": "Docker", "category": "DevOps", "level": "" },
+      { "id": 14, "name": "AWS", "category": "DevOps", "level": "" },
+      { "id": 15, "name": "GitHub Actions", "category": "DevOps", "level": "" },
+      { "id": 16, "name": "Figma", "category": "Ferramentas", "level": "" },
+      { "id": 17, "name": "Comunicação", "category": "Comportamentais", "level": "" },
+      { "id": 18, "name": "Trabalho em equipe", "category": "Comportamentais", "level": "" }
+    ],
+    "projects": [
+      {
+        "id": 1,
+        "name": "FinançasFácil",
+        "url": "github.com/anasouza/financas-facil",
+        "description": "App open source de controle de gastos pessoais.",
+        "bullets": [
+          { "id": "p1", "text": "Back-end em Rails com API GraphQL e front-end em Next.js." },
+          { "id": "p2", "text": "Mais de 300 estrelas no GitHub e 15 contribuidores." }
+        ],
+        "skills": ["Ruby on Rails", "GraphQL", "Next.js"]
+      },
+      {
+        "id": 2,
+        "name": "Bot de vagas",
+        "url": "",
+        "description": "Bot em Python que coleta vagas e envia alertas no Telegram.",
+        "bullets": [
+          { "id": "p3", "text": "Scraping com Python e agendamento com cron em servidor Linux." }
+        ],
+        "skills": ["Python", "Linux"]
+      },
+      {
+        "id": 3,
+        "name": "Portfólio de design",
+        "url": "",
+        "description": "Protótipos de interfaces feitos no Figma.",
+        "bullets": [],
+        "skills": ["Figma", "UX"]
+      }
+    ],
+    "languages": [
+      { "id": 1, "name": "Português", "level": "Nativo" },
+      { "id": 2, "name": "Inglês", "level": "Avançado" }
+    ],
+    "certifications": [
+      { "id": 1, "name": "AWS Certified Cloud Practitioner", "issuer": "Amazon Web Services", "date": "2023-05", "url": "" },
+      { "id": 2, "name": "Scrum Foundation", "issuer": "CertiProf", "date": "2021-08", "url": "" }
+    ]
+  },
+  "jobs": [
+    {
+      "id": 1,
+      "title": "Desenvolvedor(a) Back-end Ruby on Rails Sênior",
+      "company": "PagaJá",
+      "url": "",
+      "status": "salva",
+      "notes": "",
+      "description": "Sobre a vaga\nEstamos buscando uma pessoa desenvolvedora back-end para o time de pagamentos.\n\nResponsabilidades\n- Desenvolver e manter APIs REST em Ruby on Rails\n- Trabalhar com filas e processamento assíncrono (Sidekiq, Kafka)\n- Garantir qualidade com testes automatizados (RSpec)\n- Participar de code review e mentoria do time\n\nRequisitos\n- Experiência sólida com Ruby on Rails e PostgreSQL\n- Vivência com Docker, Kubernetes e AWS\n- Conhecimento em microsserviços e mensageria\n- Experiência com CI/CD\n- Inglês intermediário\n\nDiferenciais\n- Experiência com meios de pagamento\n- Conhecimento em Redis e observabilidade (Datadog)",
+      "extra_keywords": [],
+      "ignored_keywords": [],
+      "overrides": {},
+      "custom_headline": "Desenvolvedora Back-end Ruby on Rails",
+      "custom_summary": "",
+      "cover_letter": ""
+    }
+  ],
+  "settings": {
+    "language": "pt",
+    "accent_color": "#000000",
+    "max_bullets": 4,
+    "max_skills": 18,
+    "ollama_url": "http://localhost:11434",
+    "ollama_model": ""
+  }
+}

@@ -1,0 +1,77 @@
+<% content_for :title, "Meu perfil — Currículos sob medida" %>
+<% other = @profile.language == "pt" ? "en" : "pt" %>
+<% copy_warning = @profile.blank_profile? ? "" : " Isso SUBSTITUI o que já está no perfil em #{language_label(@profile.language).downcase}." %>
+<% copy_confirm = "Copiar todo o perfil em #{language_label(other).downcase} para cá?#{copy_warning}" %>
+
+<div class="profile" data-controller="dirty">
+  <nav class="small-tabs language-tabs">
+    <% Setting::LANGUAGES.each do |lang| %>
+      <%= link_to "Perfil em #{language_label(lang).downcase}", profile_path(lang),
+                  class: ("active" if @profile.language == lang) %>
+    <% end %>
+  </nav>
+
+  <div class="toolbar sticky">
+    <p class="muted">Cadastre <strong>tudo</strong> aqui, sem se preocupar com tamanho. Para cada vaga o sistema escolhe o
+      que for mais relevante. Vagas em <%= language_label(@profile.language).downcase %> usam este perfil.</p>
+    <%= button_to "Copiar do perfil em #{language_label(other).downcase}",
+                  copy_profile_path(@profile.language, from: other),
+                  form: { data: { turbo_confirm: copy_confirm } } %>
+    <button type="submit" form="profile-form" class="primary" data-dirty-target="save"
+            data-dirty-saved-text="Salvo" disabled>Salvo</button>
+  </div>
+
+  <% if @profile.blank_profile? %>
+    <section class="card empty">
+      <h2>Perfil em <%= language_label(@profile.language).downcase %> vazio</h2>
+      <p>Copie o perfil em <%= language_label(other).downcase %> e depois traduza/adapte os textos, ou preencha do
+        zero abaixo.</p>
+      <%= button_to "Copiar do perfil em #{language_label(other).downcase}",
+                    copy_profile_path(@profile.language, from: other), class: "primary",
+                    form: { data: { turbo_confirm: copy_confirm } } %>
+    </section>
+  <% end %>
+
+  <section class="card">
+    <h2>Importar de PDF</h2>
+    <p class="muted">Suba o PDF do seu perfil do LinkedIn (<em>Mais &rsaquo; Salvar em PDF</em>) ou qualquer currículo em PDF.
+      Os dados entram <strong>por cima dos campos vazios</strong> e novos itens são anexados — nada é apagado.
+      Se o Ollama estiver rodando, a IA ajuda a interpretar formatos fora do padrão.</p>
+    <%= form_with url: import_profile_path(@profile.language), multipart: true, class: "row-end" do %>
+      <label class="button">Escolher PDF…
+        <%= file_field_tag :resume, accept: "application/pdf", required: true, hidden: true,
+                           onchange: "this.form.requestSubmit()" %>
+      </label>
+    <% end %>
+  </section>
+
+  <%= form_with url: profile_path(@profile.language), method: :put, id: "profile-form" do %>
+    <section class="card">
+      <h2>Dados pessoais</h2>
+      <div class="grid">
+        <label class="field"><span>Nome completo</span><%= text_field_tag "profile[full_name]", @profile.full_name %></label>
+        <label class="field"><span>Título profissional</span><%= text_field_tag "profile[headline]", @profile.headline, placeholder: "Ex.: Desenvolvedor Full Stack" %></label>
+        <label class="field"><span>E-mail</span><%= email_field_tag "profile[email]", @profile.email %></label>
+        <label class="field"><span>Telefone</span><%= text_field_tag "profile[phone]", @profile.phone %></label>
+        <label class="field"><span>Cidade / Estado</span><%= text_field_tag "profile[location]", @profile.location %></label>
+        <label class="field"><span>LinkedIn</span><%= text_field_tag "profile[linkedin]", @profile.linkedin %></label>
+        <label class="field"><span>GitHub</span><%= text_field_tag "profile[github]", @profile.github %></label>
+        <label class="field"><span>Site / Portfólio</span><%= text_field_tag "profile[website]", @profile.website %></label>
+      </div>
+      <label class="field"><span>Resumo profissional padrão</span><%= text_area_tag "profile[summary]", @profile.summary, rows: 4 %></label>
+    </section>
+
+    <%= render "list_section", title: "Experiências", section: :experiences, items: @profile.experiences,
+                               partial: "experience", new_record: Experience.new %>
+    <%= render "list_section", title: "Projetos", section: :projects, items: @profile.projects,
+                               partial: "project", new_record: Project.new %>
+    <%= render "list_section", title: "Competências", section: :skills, items: @profile.skills,
+                               partial: "skill", new_record: Skill.new %>
+    <%= render "list_section", title: "Formação", section: :educations, items: @profile.educations,
+                               partial: "education", new_record: Education.new %>
+    <%= render "list_section", title: "Idiomas", section: :languages, items: @profile.languages,
+                               partial: "language", new_record: Language.new %>
+    <%= render "list_section", title: "Certificações e cursos", section: :certifications, items: @profile.certifications,
+                               partial: "certification", new_record: Certification.new %>
+  <% end %>
+</div>

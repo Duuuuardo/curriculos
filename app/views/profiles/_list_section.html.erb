@@ -1,0 +1,39 @@
+<section class="card" data-controller="list">
+  <header class="card-header">
+    <h2><%= title %></h2>
+    <button type="button" class="small" data-action="list#add"><%= icon "plus", size: 13 %> Adicionar</button>
+  </header>
+  <p class="muted" data-list-target="empty" <%= "hidden" if items.any? %>>Nenhum item ainda.</p>
+  <ul class="list" data-list-target="items">
+    <% items.each do |item| %>
+      <li data-list-target="item">
+        <div class="list-row">
+          <button type="button" class="link" data-action="list#toggle"><%= profile_item_summary(item) %></button>
+          <div class="actions">
+            <button type="button" class="icon" title="Subir" aria-label="Subir" data-action="list#up"><%= icon "chevron-up", size: 14 %></button>
+            <button type="button" class="icon" title="Descer" aria-label="Descer" data-action="list#down"><%= icon "chevron-down", size: 14 %></button>
+            <button type="button" class="icon danger" title="Remover" aria-label="Remover" data-action="list#remove"><%= icon "trash", size: 14 %></button>
+          </div>
+        </div>
+        <div class="list-body">
+          <%= render partial, record: item, key: item.id.to_s %>
+        </div>
+      </li>
+    <% end %>
+  </ul>
+  <template data-list-target="template">
+    <li data-list-target="item" class="open">
+      <div class="list-row">
+        <button type="button" class="link" data-action="list#toggle">(sem título)</button>
+        <div class="actions">
+          <button type="button" class="icon" title="Subir" aria-label="Subir" data-action="list#up"><%= icon "chevron-up", size: 14 %></button>
+          <button type="button" class="icon" title="Descer" aria-label="Descer" data-action="list#down"><%= icon "chevron-down", size: 14 %></button>
+          <button type="button" class="icon danger" title="Remover" aria-label="Remover" data-action="list#remove"><%= icon "trash", size: 14 %></button>
+        </div>
+      </div>
+      <div class="list-body">
+        <%= render partial, record: new_record, key: "__key__" %>
+      </div>
+    </li>
+  </template>
+</section>

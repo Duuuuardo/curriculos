@@ -1,0 +1,98 @@
+<% content_for :title, "Configurações — Currículos sob medida" %>
+
+<div class="settings">
+  <section class="card">
+    <h2>Currículo</h2>
+    <%= form_with scope: :settings, url: settings_path, method: :put, data: { controller: "autosave" } do |f| %>
+      <div class="grid">
+        <label class="field"><span>Idioma padrão de novas vagas (quando não der para detectar)</span>
+          <%= f.select :language, [ [ "Português", "pt" ], [ "English", "en" ] ], { selected: @settings.language },
+                       data: { action: "autosave#change" } %>
+        </label>
+        <label class="field"><span>Tamanho da página</span>
+          <%= f.select :paper_size, [ [ "Carta (Letter)", "letter" ], [ "A4", "a4" ] ], { selected: @settings.paper_size },
+                       data: { action: "autosave#change" } %>
+        </label>
+        <label class="field"><span>Cor dos títulos e linhas</span>
+          <%= f.color_field :accent_color, value: @settings.accent_color, data: { action: "autosave#change" } %>
+        </label>
+        <label class="field"><span>Máx. de tópicos por experiência</span>
+          <%= f.number_field :max_bullets, value: @settings.max_bullets, min: 1, max: 12,
+                             data: { action: "autosave#blur" } %>
+        </label>
+        <label class="field"><span>Máx. de competências</span>
+          <%= f.number_field :max_skills, value: @settings.max_skills, min: 1, max: 60,
+                             data: { action: "autosave#blur" } %>
+        </label>
+      </div>
+    <% end %>
+  </section>
+
+  <section class="card" data-controller="provider">
+    <h2>Inteligência artificial</h2>
+    <p class="muted">O app funciona sem IA, mas com ela você gera resumos, cartas e usa o
+      <strong>Assistente</strong> (chat) para criar e adaptar currículos. Opções: Ollama grátis no seu PC
+      (<a href="https://ollama.com/download" target="_blank" rel="noreferrer">instalar</a>, depois
+      <code>ollama pull llama3.2</code>) ou uma API paga/gratuita compatível.</p>
+    <%= form_with scope: :settings, url: settings_path, method: :put, data: { controller: "autosave" } do |f| %>
+      <div class="grid">
+        <label class="field"><span>Provedor</span>
+          <%= f.select :ai_provider, LlmClient::PROVIDERS.map { |value, label| [ label, value ] },
+                       { selected: @settings.ai_provider },
+                       data: { action: "provider#toggle autosave#change", provider_target: "select" } %>
+        </label>
+
+        <label class="field" data-provider-target="apiField" <%= "hidden" if @settings.ai_provider == "ollama" %>><span>Chave da API</span>
+          <%= f.password_field :ai_api_key, value: @settings.ai_api_key, autocomplete: "off",
+                               placeholder: "sk-... (fica só no seu banco local)",
+                               data: { action: "autosave#blur" } %>
+        </label>
+
+        <label class="field" data-provider-target="apiField" <%= "hidden" if @settings.ai_provider == "ollama" %>><span>URL base <em class="muted">(opcional)</em></span>
+          <%= f.text_field :ai_base_url, value: @settings.ai_base_url,
+                           placeholder: "https://openrouter.ai/api/v1", data: { action: "autosave#blur" } %>
+        </label>
+
+        <label class="field" data-provider-target="ollamaField" <%= "hidden" unless @settings.ai_provider == "ollama" %>><span>Endereço do Ollama</span>
+          <%= f.text_field :ollama_url, value: @settings.ollama_url, data: { action: "autosave#blur" } %>
+        </label>
+
+        <label class="field"><span>Modelo</span>
+          <%= turbo_frame_tag "ai-models",
+                              src: ai_models_path(current: @settings.ai_provider == "ollama" ? @settings.ollama_model : @settings.ai_model,
+                                                  provider: @settings.ai_provider) do %>
+            <% if @settings.ai_provider == "ollama" %>
+              <select name="settings[ollama_model]" data-action="autosave#change">
+                <option value=""><%= @settings.ollama_model.presence || "Primeiro disponível" %></option>
+              </select>
+            <% else %>
+              <input type="text" name="settings[ai_model]" value="<%= @settings.ai_model %>"
+                     placeholder="ex.: gpt-4o-mini" data-action="autosave#blur">
+            <% end %>
+          <% end %>
+        </label>
+      </div>
+    <% end %>
+    <div class="row-end">
+      <%= button_to "Testar conexão", ai_test_path,
+                    params: { settings: @settings.slice(*Setting::ATTRIBUTES) }, class: "primary" %>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Seus dados</h2>
+    <p class="muted">Tudo fica salvo só no seu computador (banco SQLite). Faça backup de vez em quando.</p>
+    <div class="row-end">
+      <%= link_to "Exportar backup (JSON)", backup_path, class: "button" %>
+      <%= form_with url: backup_path, multipart: true,
+                    data: { turbo_confirm: "Importar vai SUBSTITUIR todos os dados atuais. Continuar?" } do %>
+        <label class="button">Importar backup
+          <%= file_field_tag :backup, accept: "application/json", hidden: true,
+                             onchange: "this.form.requestSubmit()" %>
+        </label>
+      <% end %>
+      <%= button_to "Carregar exemplo", sample_backup_path,
+                    form: { data: { turbo_confirm: "Carregar o exemplo vai SUBSTITUIR todos os dados atuais. Continuar?" } } %>
+    </div>
+  </section>
+</div>

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="turbo-refresh-method" content="morph">
+    <meta name="turbo-refresh-scroll" content="preserve">
+    <title><%= content_for(:title) || "Currículos sob medida" %></title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect width='24' height='24' rx='5' fill='%23185a64'/><path d='M8 7h8M8 11h8M8 15h5' stroke='%23eaf6f6' stroke-width='1.8' stroke-linecap='round'/></svg>">
+    <%= csrf_meta_tags %>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+    <%= stylesheet_link_tag "application", "data-turbo-track": "reload" %>
+    <%= javascript_importmap_tags %>
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar no-print">
+        <%= link_to root_path, class: "brand" do %>
+          <span class="brand-mark"><%= icon "file-text" %></span>
+          <span class="brand-text"><strong>Currículos</strong><span>sob medida</span></span>
+        <% end %>
+        <nav class="nav">
+          <%= link_to root_path, class: ("active" if controller_name == "jobs"), "aria-current": ("page" if controller_name == "jobs") do %>
+            <%= icon "briefcase" %> Vagas
+          <% end %>
+          <%= link_to assistant_path, class: ("active" if controller_name == "assistant"), "aria-current": ("page" if controller_name == "assistant") do %>
+            <%= icon "chat" %> Assistente
+          <% end %>
+          <%= link_to profile_path(Setting.current.language), class: ("active" if controller_name == "profiles"), "aria-current": ("page" if controller_name == "profiles") do %>
+            <%= icon "user" %> Meu perfil
+          <% end %>
+        </nav>
+        <nav class="nav sidebar-foot">
+          <%= link_to edit_settings_path,
+                      class: ("active" if %w[settings backups ai].include?(controller_name)),
+                      "aria-current": ("page" if %w[settings backups ai].include?(controller_name)) do %>
+            <%= icon "settings" %> Configurações
+          <% end %>
+        </nav>
+      </aside>
+
+      <main class="content">
+        <%= yield %>
+      </main>
+    </div>
+
+    <%= render "chat_popup", messages: ChatMessage.order(:id).last(30), job: @job if controller_name != "assistant" %>
+
+    <div class="toasts no-print">
+      <% flash.each do |type, message| %>
+        <div class="toast <%= type.to_s == "alert" ? "error" : "ok" %>" data-controller="toast"><%= message %></div>
+      <% end %>
+    </div>
+  </body>
+</html>

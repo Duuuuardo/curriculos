@@ -1,0 +1,252 @@
+<% content_for :title, "#{@job.title} — Currículos sob medida" %>
+<% other_language = @job.language == "pt" ? "en" : "pt" %>
+
+<div class="workspace">
+  <div class="toolbar sticky no-print">
+    <%= link_to jobs_path, class: "button small" do %><%= icon "arrow-left" %> Vagas<% end %>
+    <div class="workspace-title">
+      <%= score_badge(@analysis[:score]) %>
+      <div>
+        <strong><%= @job.title %></strong>
+        <span class="muted"> <%= @job.company %></span>
+      </div>
+    </div>
+    <div class="toolbar-group">
+      <%= form_with model: @job, method: :patch, data: { controller: "autosave" } do |f| %>
+        <%= f.select :status, Job::STATUSES.map { |s| [ status_label(s), s ] }, {},
+                     { title: "Etapa da candidatura", data: { action: "autosave#change" } } %>
+      <% end %>
+      <%= form_with model: @job, method: :patch, data: { controller: "autosave" } do |f| %>
+        <%= f.select :language,
+                     ResumeHelper::LANGUAGE_LABELS.map { |code, label| [ "Currículo em #{label.downcase}", code ] }, {},
+                     { title: "Idioma do currículo (usa o perfil nesse idioma)", data: { action: "autosave#change" } } %>
+      <% end %>
+    </div>
+    <div class="toolbar-group">
+      <%= button_to "Duplicar", duplicate_job_path(@job), title: "Útil para criar variações do currículo" %>
+      <%= button_to "Criar cópia em #{language_label(other_language).downcase}",
+                    duplicate_job_path(@job, language: other_language),
+                    title: "Cria uma cópia desta vaga com o currículo em #{language_label(other_language).downcase}" %>
+      <button type="button" class="primary" data-controller="print" data-action="print#print"
+              data-print-title-value="<%= pdf_file_name(@resume[:header][:full_name], @job.language, @job.company.presence || @job.title) %>">
+        <%= icon "download" %> Baixar PDF
+      </button>
+      <%= button_to "Excluir", job_path(@job), method: :delete, class: "danger",
+                    form: { data: { turbo_confirm: "Excluir esta vaga?" } } %>
+    </div>
+  </div>
+
+  <div class="workspace-body">
+    <aside class="side no-print">
+      <nav class="small-tabs">
+        <% [ [ "analise", "Análise" ], [ "ajustar", "Ajustar currículo" ], [ "vaga", "Vaga" ], [ "carta", "Carta" ] ].each do |id, label| %>
+          <%= link_to label, job_path(@job, panel: id, anchor: "panel"), class: ("active" if @panel == id) %>
+        <% end %>
+      </nav>
+
+      <% if @panel == "analise" %>
+        <div class="panel" id="panel">
+          <p>Seu perfil cobre <strong><%= @analysis[:score] %>%</strong> das palavras-chave da vaga (ponderado pela
+            importância).</p>
+          <% if @analysis[:keywords].empty? %>
+            <p class="muted">Nenhuma palavra-chave encontrada. Cole a descrição completa da vaga na aba “Vaga”.</p>
+          <% end %>
+
+          <% [ [ "ok", "Você tem", @analysis[:keywords].select { |k| k[:matched] } ],
+               [ "missing", "Faltando no seu perfil", @analysis[:keywords].reject { |k| k[:matched] } ] ].each do |tone, title, keywords| %>
+            <% next if keywords.empty? %>
+            <div class="keyword-group">
+              <h3><%= title %> (<%= keywords.size %>)</h3>
+              <div class="chips">
+                <% keywords.each do |keyword| %>
+                  <span class="chip keyword <%= tone %>" title="Peso <%= keyword[:weight] %> • origem: <%= keyword[:source] %>">
+                    <%= keyword[:label] %>
+                    <%= button_to ignore_keyword_job_path(@job, keyword: keyword[:label], panel: "analise"),
+                                  title: "Ignorar esta palavra-chave", form: { class: "inline" } do %>
+                      <%= icon "x", size: 12 %>
+                    <% end %>
+                  </span>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+
+          <p class="muted small">Se você tem alguma das que estão faltando, adicione no seu Perfil (numa experiência,
+            projeto ou competência) — sempre com honestidade.</p>
+
+          <div class="keyword-group">
+            <div class="row-between">
+              <h3>Parecer da IA (opcional)</h3>
+              <%= turbo_frame_tag "ai-match",
+                                  src: ai_status_path(kind: "match", job_id: @job.id, frame: "ai-match") do %>
+                <p class="muted small">Verificando IA…</p>
+              <% end %>
+            </div>
+            <% if @job.ai_analysis.present? %>
+              <div class="ai-report"><%= markdown_lite(@job.ai_analysis) %></div>
+              <%= turbo_frame_tag "ai-adapt",
+                                  src: ai_status_path(kind: "adapt", job_id: @job.id, frame: "ai-adapt") do %>
+              <% end %>
+            <% else %>
+              <p class="muted small">Pede para a IA avaliar a aderência do seu perfil a esta vaga e sugerir ajustes.</p>
+            <% end %>
+          </div>
+
+          <% [ [ :extra_keywords, "Palavras-chave extras (que a vaga pede mas o sistema não pegou)" ],
+               [ :ignored_keywords, "Palavras-chave ignoradas" ] ].each do |field, label| %>
+            <%= form_with model: @job, method: :patch,
+                          data: { controller: "tags", tags_autosubmit_value: "true" } do %>
+              <%= hidden_field_tag :panel, "analise", id: nil %>
+              <div class="field">
+                <span><%= label %></span>
+                <div class="tags">
+                  <% @job.public_send(field).each do |tag| %>
+                    <span class="tag"><%= tag %>
+                      <input type="hidden" name="job[<%= field %>][]" value="<%= tag %>">
+                      <button type="button" title="Remover" aria-label="Remover" data-action="tags#remove"><%= icon "x", size: 12 %></button>
+                    </span>
+                  <% end %>
+                  <input type="hidden" name="job[<%= field %>][]" value="">
+                  <input data-tags-target="input" data-name="job[<%= field %>][]"
+                         placeholder="Digite e pressione Enter"
+                         data-action="keydown->tags#commit blur->tags#commit">
+                </div>
+              </div>
+            <% end %>
+          <% end %>
+        </div>
+      <% end %>
+
+      <% if @panel == "ajustar" %>
+        <div class="panel" id="panel">
+          <div class="row-between">
+            <p class="muted small">Marque o que entra no currículo desta vaga. O resto do perfil fica guardado.</p>
+            <%= button_to "Automático", reset_overrides_job_path(@job, panel: "ajustar"), method: :patch,
+                          class: "small",
+                          form: { data: { turbo_confirm: "Voltar todas as escolhas para o automático?" } } %>
+          </div>
+
+          <%= form_with model: @job, method: :patch, data: { controller: "autosave" } do |f| %>
+            <%= hidden_field_tag :panel, "ajustar", id: nil %>
+            <label class="field"><span>Título profissional para esta vaga</span>
+              <%= f.text_field :custom_headline, placeholder: @resume[:header][:headline],
+                               data: { action: "autosave#blur" } %>
+            </label>
+            <label class="field"><span>Resumo para esta vaga (vazio = resumo padrão do perfil)</span>
+              <%= f.text_area :custom_summary, rows: 5, data: { action: "autosave#blur" } %>
+            </label>
+            <label class="field"><span>Instruções para a IA <em class="muted">(opcional — usadas ao gerar resumo e carta)</em></span>
+              <%= f.text_area :ai_instructions, rows: 3,
+                              placeholder: "Ex.: foque nas experiências com produto B2B, tom mais executivo, mencione que já migrei sistemas legados",
+                              data: { action: "autosave#blur" } %>
+            </label>
+          <% end %>
+
+          <% if @job.ai_edits.any? %>
+            <details class="ai-history">
+              <summary>Histórico de alterações da IA (<%= @job.ai_edits.size %>)</summary>
+              <ul>
+                <% @job.ai_edits.each do |edit| %>
+                  <li><strong><%= l(edit.created_at, format: "%d/%m %H:%M") %></strong> — <%= edit.description %></li>
+                <% end %>
+              </ul>
+            </details>
+          <% end %>
+
+          <%= turbo_frame_tag "ai-summary",
+                              src: ai_status_path(job_id: @job.id, kind: "summary", frame: "ai-summary") do %>
+            <p class="muted small">Verificando IA…</p>
+          <% end %>
+
+          <%= form_with model: @job, method: :patch, data: { controller: "autosave" } do %>
+            <%= hidden_field_tag :panel, "ajustar", id: nil %>
+            <%= render "entry_toggles", title: "Experiências", entries: @resume[:experiences] %>
+            <%= render "entry_toggles", title: "Projetos", entries: @resume[:projects] %>
+
+            <% if @resume[:skill_groups].any? %>
+              <h3>Competências</h3>
+              <% @resume[:skill_groups].each do |group| %>
+                <div class="toggle-group">
+                  <span class="muted small"><%= group[:category].presence || "Sem categoria" %></span>
+                  <div class="chips">
+                    <% group[:skills].each do |skill| %>
+                      <label class="chip<%= " matched" if skill[:matched] %>"
+                             <% if skill[:matched] %> title="Citada na vaga"<% end %>>
+                        <input type="hidden" name="job[overrides][<%= skill[:key] %>]" value="0">
+                        <input type="checkbox" name="job[overrides][<%= skill[:key] %>]" value="1"
+                               <%= "checked" if skill[:included] %> data-action="autosave#change">
+                        <%= skill[:name] %>
+                      </label>
+                    <% end %>
+                  </div>
+                </div>
+              <% end %>
+            <% end %>
+
+            <%= render "entry_toggles", title: "Formação", entries: @resume[:educations] %>
+            <%= render "entry_toggles", title: "Certificações", entries: @resume[:certifications] %>
+          <% end %>
+        </div>
+      <% end %>
+
+      <% if @panel == "vaga" %>
+        <div class="panel" id="panel">
+          <%= form_with model: @job, method: :patch, data: { controller: "autosave" } do |f| %>
+            <%= hidden_field_tag :panel, "vaga", id: nil %>
+            <label class="field"><span>Título</span>
+              <%= f.text_field :title, required: true, data: { action: "autosave#blur" } %>
+            </label>
+            <label class="field"><span>Empresa</span>
+              <%= f.text_field :company, data: { action: "autosave#blur" } %>
+            </label>
+            <label class="field"><span>Link</span>
+              <%= f.text_field :url, data: { action: "autosave#blur" } %>
+            </label>
+            <% if @job.url.present? %>
+              <a href="<%= @job.url %>" target="_blank" rel="noreferrer" class="small link-icon">Abrir vaga <%= icon "external", size: 13 %></a>
+            <% end %>
+            <label class="field"><span>Descrição da vaga</span>
+              <%= f.text_area :description, rows: 16, data: { action: "autosave#blur" } %>
+            </label>
+            <label class="field"><span>Anotações</span>
+              <%= f.text_area :notes, rows: 5, data: { action: "autosave#blur" } %>
+            </label>
+          <% end %>
+        </div>
+      <% end %>
+
+      <% if @panel == "carta" %>
+        <div class="panel" id="panel">
+          <%= form_with model: @job, method: :patch, data: { controller: "autosave" } do |f| %>
+            <%= hidden_field_tag :panel, "carta", id: nil %>
+            <label class="field"><span>Carta de apresentação</span>
+              <%= f.text_area :cover_letter, rows: 16, data: { action: "autosave#blur" } %>
+            </label>
+          <% end %>
+          <div class="row-between">
+            <%= turbo_frame_tag "ai-cover",
+                                src: ai_status_path(job_id: @job.id, kind: "cover_letter", frame: "ai-cover") do %>
+              <p class="muted small">Verificando IA…</p>
+            <% end %>
+            <button type="button" class="small" <%= "disabled" if @job.cover_letter.blank? %>
+                    data-controller="clipboard" data-action="clipboard#copy"
+                    data-clipboard-text-value="<%= @job.cover_letter %>">Copiar</button>
+          </div>
+        </div>
+      <% end %>
+    </aside>
+
+    <main class="preview-area" data-controller="highlight">
+      <div class="no-print preview-options">
+        <label class="checkbox">
+          <input type="checkbox" data-action="highlight#toggle">
+          <span>Destacar palavras-chave da vaga (só na tela)</span>
+        </label>
+      </div>
+      <div class="page marks-off <%= @resume[:paper_size] %>" data-highlight-target="page"
+           data-controller="review-selection" data-review-selection-job-title-value="<%= @job.title %>">
+        <%= render "resume", resume: @resume, terms: @highlight_terms %>
+      </div>
+    </main>
+  </div>
+</div>

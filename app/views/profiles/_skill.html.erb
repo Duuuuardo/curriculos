@@ -1,0 +1,9 @@
+<% np = "profile[skills][#{key}]" %>
+<% if record.persisted? %><input type="hidden" name="<%= np %>[id]" value="<%= record.id %>"><% end %>
+<div class="grid">
+  <label class="field"><span>Competência</span><%= text_field_tag "#{np}[name]", record.name %></label>
+  <label class="field"><span>Categoria</span><%= text_field_tag "#{np}[category]", record.category,
+                      placeholder: "Ex.: Linguagens, Frameworks, Ferramentas, Soft skills" %></label>
+  <label class="field"><span>Nível (opcional)</span><%= text_field_tag "#{np}[level]", record.level,
+                      placeholder: "Ex.: Avançado" %></label>
+</div>

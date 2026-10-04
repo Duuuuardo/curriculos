@@ -1,0 +1,44 @@
+<% np = "profile[projects][#{key}]" %>
+<% if record.persisted? %><input type="hidden" name="<%= np %>[id]" value="<%= record.id %>"><% end %>
+<div class="grid">
+  <label class="field"><span>Nome</span><%= text_field_tag "#{np}[name]", record.name %></label>
+  <label class="field"><span>Link</span><%= text_field_tag "#{np}[url]", record.url %></label>
+</div>
+<label class="field"><span>Descrição curta</span><%= text_area_tag "#{np}[description]", record.description, rows: 2 %></label>
+
+<div class="field" data-controller="bullets">
+  <span>Destaques</span>
+  <div class="bullets" data-bullets-target="list">
+    <% record.bullets.each do |bullet| %>
+      <div class="bullet-row">
+        <input type="hidden" name="<%= np %>[bullets][][id]" value="<%= bullet["id"] %>">
+        <textarea rows="2" name="<%= np %>[bullets][][text]"><%= bullet["text"] %></textarea>
+        <button type="button" class="icon danger" title="Remover" aria-label="Remover" data-action="bullets#remove"><%= icon "x", size: 14 %></button>
+      </div>
+    <% end %>
+    <input type="hidden" name="<%= np %>[bullets][][text]" value="">
+  </div>
+  <button type="button" class="small" data-action="bullets#add"><%= icon "plus", size: 13 %> Tópico</button>
+  <template data-bullets-target="template">
+    <div class="bullet-row">
+      <input type="hidden" name="<%= np %>[bullets][][id]" value="">
+      <textarea rows="2" name="<%= np %>[bullets][][text]"></textarea>
+      <button type="button" class="icon danger" title="Remover" aria-label="Remover" data-action="bullets#remove"><%= icon "x", size: 14 %></button>
+    </div>
+  </template>
+</div>
+
+<div class="field" data-controller="tags">
+  <span>Tecnologias</span>
+  <div class="tags">
+    <input type="hidden" name="<%= np %>[skills][]" value="">
+    <% record.skills.each do |skill| %>
+      <span class="tag"><%= skill %>
+        <input type="hidden" name="<%= np %>[skills][]" value="<%= skill %>">
+        <button type="button" title="Remover" aria-label="Remover" data-action="tags#remove"><%= icon "x", size: 12 %></button>
+      </span>
+    <% end %>
+    <input data-tags-target="input" data-name="<%= np %>[skills][]" placeholder="Digite e pressione Enter"
+           data-action="keydown->tags#commit blur->tags#commit">
+  </div>
+</div>

@@ -1,0 +1,19 @@
+<%# Popup flutuante do Assistente (todas as páginas, exceto a própria aba Assistente). %>
+<div class="chat-widget no-print" data-controller="chat" data-turbo-permanent id="chat-widget">
+  <div class="chat-window" hidden data-chat-target="window">
+    <div class="chat-window-head">
+      <strong><%= icon "chat", size: 15 %> Assistente</strong>
+      <button type="button" class="chat-close" data-action="chat#toggle" aria-label="Fechar"><%= icon "x", size: 15 %></button>
+    </div>
+    <div class="chat-log" id="chat-log" data-chat-target="log">
+      <% if messages.empty? %>
+        <div class="chat-empty" id="chat-empty">
+          <p>Posso criar vagas, adaptar o currículo desta página ou responder dúvidas sobre a vaga.</p>
+        </div>
+      <% end %>
+      <%= render messages %>
+    </div>
+    <%= render "chat_composer", job_id: job&.id %>
+  </div>
+  <button type="button" class="chat-fab" data-action="chat#toggle" title="Assistente" aria-label="Abrir assistente"><%= icon "sparkles", size: 20 %></button>
+</div>

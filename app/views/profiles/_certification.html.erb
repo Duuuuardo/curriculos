@@ -1,0 +1,8 @@
+<% np = "profile[certifications][#{key}]" %>
+<% if record.persisted? %><input type="hidden" name="<%= np %>[id]" value="<%= record.id %>"><% end %>
+<div class="grid">
+  <label class="field"><span>Nome</span><%= text_field_tag "#{np}[name]", record.name %></label>
+  <label class="field"><span>Emissor</span><%= text_field_tag "#{np}[issuer]", record.issuer %></label>
+  <label class="field"><span>Data</span><%= month_field_tag "#{np}[date]", record.date %></label>
+  <label class="field"><span>Link</span><%= text_field_tag "#{np}[url]", record.url %></label>
+</div>
