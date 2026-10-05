@@ -60,7 +60,7 @@ class ProfileImporter
       item_key = key.call(item)
       next false if existing.include?(item_key)
 
-      association.create!(item.slice(*Profile::SECTIONS[section]).merge(position: position))
+      association.create!(item.slice(*Profile::SECTIONS[section]).compact.merge(position: position))
       existing << item_key
       position += 1
       true

@@ -26,9 +26,9 @@ class ResumeImport
   }.freeze
 
   MONTH_TOKEN = MONTHS.keys.join("|")
-  DATE = /(?:#{MONTH_TOKEN})\.?\s*(?:de\s+)?(\d{4})/i
-  PRESENT = /present(?:e)?|atual(?:idade)?|o momento|hoje|current|now|previsto|expected/i
-  RANGE_SEP = /\s*[-–—aà]\s*(?:de\s+)?| to /i
+  DATE = /(#{MONTH_TOKEN})\.?\s*(?:de\s+)?(\d{4})/i
+  PRESENT = /present(?:e)?|atual(?:idade)?|o momento|hoje|current|now|previsto|expected|cursando|em andamento|ongoing|in progress/i
+  RANGE_SEP = /(?:\s*[-–—aà]\s*(?:de\s+)?| to )/i
   DATE_RANGE = /\(?\s*#{DATE.source}\s*#{RANGE_SEP.source}\s*(?:#{DATE.source}|#{PRESENT.source})/i
   YEAR_RANGE = /\(?\s*((?:19|20)\d{2})\s*[-–—]\s*((?:19|20)\d{2}|#{PRESENT.source})/i
 
@@ -40,17 +40,23 @@ class ResumeImport
                   tecnolog|technolog|software|solutions|solu[çc][õo]es|labs|studio|digital|systems|sistemas/i
 
   HEADERS = {
-    summary: %w[resumo summary profile perfil objetivo objective about sobre "sobre mim"],
-    experience: %w[experiência experience experiencias experiences employment "experiência profissional"
-                   "work experience" "professional experience" "histórico profissional" "employment history"],
-    education: %w[formação education educação "formação acadêmica" "academic background" escolaridade
-                  "educação e formação"],
-    skills: %w[competências skills "top skills" "principais competências" habilidades tecnologias
-               "technical skills" conhecimentos "competências e habilidades"],
-    languages: %w[idiomas languages línguas],
-    certifications: %w[certificações certifications certificados licenças cursos "licenses and certifications"
-                       "licenses & certifications" "honors-awards" "prêmios e títulos" "cursos e certificações"],
-    projects: %w[projetos projects]
+    summary: [ "resumo", "summary", "profile", "perfil", "objetivo", "objective", "about", "sobre",
+               "sobre mim", "professional summary", "resumo profissional" ],
+    experience: [ "experiência", "experience", "experiencias", "experiences", "employment",
+                  "experiência profissional", "work experience", "professional experience",
+                  "histórico profissional", "employment history" ],
+    education: [ "formação", "education", "educação", "formação acadêmica", "academic background",
+                 "escolaridade", "educação e formação", "formação & idiomas", "formação e idiomas",
+                 "education & languages", "education and languages" ],
+    skills: [ "competências", "skills", "top skills", "principais competências", "habilidades",
+              "habilidades técnicas", "tecnologias", "technical skills", "conhecimentos",
+              "competências e habilidades", "core technologies" ],
+    languages: [ "idiomas", "languages", "línguas" ],
+    certifications: [ "certificações", "certifications", "certificados", "licenças", "cursos",
+                      "licenses and certifications", "licenses & certifications", "honors-awards",
+                      "prêmios e títulos", "cursos e certificações" ],
+    projects: [ "projetos", "projects", "projetos pessoais", "personal projects", "side projects" ],
+    contact: [ "contact", "contato" ]
   }.freeze
 
   EMAIL_RE = /[\w.+-]+@[\w-]+\.[\w.]+/
@@ -69,7 +75,44 @@ class ResumeImport
 
     def extract_text(uploaded)
       path = uploaded.respond_to?(:tempfile) ? uploaded.tempfile.path : uploaded.to_s
-      PDF::Reader.open(path) { |reader| reader.pages.map(&:text).join("\n") }
+      PDF::Reader.open(path) do |reader|
+        pairs = reader.pages.each_with_index.flat_map do |page, index|
+          page.runs.filter_map { |run| [ index, run ] if run.text.strip.present? }
+        end
+        columns = split_columns(pairs)
+        if columns.size < 2
+          reader.pages.map(&:text).join("\n")
+        else
+          columns.map { |column| column_text(column) }.join("\n")
+        end
+      end
+    end
+
+    # PDFs com coluna lateral (export do LinkedIn: contato/skills à esquerda)
+    # misturam as colunas na mesma linha de texto; separa pelas coordenadas,
+    # emitindo primeiro a coluna principal inteira e depois a lateral inteira.
+    def column_text(pairs)
+      pairs.sort_by { |page_index, run| [ page_index, -run.y, run.x ] }
+           .chunk { |page_index, run| [ page_index, run.y.round ] }
+           .map { |_, group| group.map { |_, run| run.text }.join }
+           .join("\n")
+    end
+
+    # Agrupa os text runs pela coordenada X; se houver um recuo claro entre o
+    # grupo mais à esquerda e o restante, trata como duas colunas. A coluna com
+    # mais conteúdo (a principal) vem primeiro.
+    def split_columns(pairs)
+      sorted = pairs.map { |_, run| run.x }.uniq.sort
+      clusters = sorted.chunk_while { |a, b| b - a < 20 }.map(&:to_a)
+      return [ pairs ] if clusters.size < 2
+
+      gaps = clusters.each_cons(2).map { |a, b| b.first - a.max }
+      boundary = clusters[gaps.each_index.max_by { |i| gaps[i] } + 1].first
+      left, right = pairs.partition { |_, run| run.x < boundary }
+      return [ pairs ] if left.size < 3
+      return [ pairs ] if left.map { |_, run| run.x + run.width }.max >= boundary - 10
+
+      [ right, left ].sort_by { |col| -col.size }
     end
   end
 
@@ -94,11 +137,7 @@ class ResumeImport
 
   def linkedin?
     @lines.any? { |line| line.match?(/linkedin\.com/i) } &&
-      (@lines.first(30) & header_lines(:summary) + header_lines(:experience)).any?
-  end
-
-  def header_lines(kind)
-    HEADERS[kind]
+      @lines.first(30).any? { |line| %i[summary experience].include?(section_kind(line)) }
   end
 
   # ---------- extração de contatos (válida para qualquer PDF) ----------
@@ -137,7 +176,7 @@ class ResumeImport
   def section_kind(line)
     folded = TextNormalizer.fold(line).sub(/[:\-–—|]+\z/, "").strip
     HEADERS.each do |kind, names|
-      return kind if names.any? { |name| folded == TextNormalizer.fold(name.delete('"')) }
+      return kind if names.any? { |name| folded == TextNormalizer.fold(name) }
     end
     nil
   end
@@ -160,18 +199,27 @@ class ResumeImport
 
     data[:full_name] = head.first
     rest = head.drop(1)
-    extract_contacts(data, rest + @lines.first(40))
+    extract_contacts(data, rest + @lines)
 
     contacty = ->(line) { line.match?(EMAIL_RE) || line.match?(URL_RE) || line.match?(/\A\+?\d[\d\s().-]{6,}\z/) }
     leftover = rest.reject { |line| contacty.call(line) }
-    data[:headline] = leftover.shift
-    data[:location] = leftover.shift
+    location_index = leftover.index { |line| line.match?(LOCATION_HINT) }
+    data[:location] = leftover.delete_at(location_index) if location_index
+    data[:headline] = leftover.join(" ").presence
+
+    # O PDF do LinkedIn quebra a URL do perfil: "www.linkedin.com/in/" numa
+    # linha e "usuario (LinkedIn)" na seguinte.
+    if data[:linkedin].to_s.match?(%r{/in/?\z})
+      slug = @lines.find { |line| line.match?(/\(linkedin\)/i) }
+                   .to_s.sub(/\s*\(linkedin\)\s*/i, "").split(/\s+/).first
+      data[:linkedin] = "#{data[:linkedin]}#{slug}" if slug.present?
+    end
 
     data[:summary] = sections[:summary].join(" ").presence
     data[:experiences] = parse_entries(sections[:experience], mode: :experience)
     data[:educations] = parse_educations(sections[:education])
     data[:skills] = parse_skills(sections[:skills])
-    data[:languages] = parse_languages(sections[:languages])
+    data[:languages] = parse_languages(sections[:languages] + language_lines(sections[:education]))
     data[:certifications] = parse_certifications(sections[:certifications])
     data[:projects] = parse_entries(sections[:projects], mode: :project)
 
@@ -205,7 +253,7 @@ class ResumeImport
     data[:experiences] = parse_entries(sections[:experience], mode: :experience)
     data[:educations] = parse_educations(sections[:education])
     data[:skills] = parse_skills(sections[:skills])
-    data[:languages] = parse_languages(sections[:languages])
+    data[:languages] = parse_languages(sections[:languages] + language_lines(sections[:education]))
     data[:certifications] = parse_certifications(sections[:certifications])
     data[:projects] = parse_entries(sections[:projects], mode: :project)
     data
@@ -218,22 +266,51 @@ class ResumeImport
   def parse_entries(lines, mode:)
     entries = []
     anchors = lines.each_index.select { |i| lines[i].match?(DATE_RANGE) || lines[i].match?(YEAR_RANGE) }
+    return parse_undated(lines) if anchors.empty? && mode == :project
     return entries if anchors.empty?
 
+    inlines = anchors.map { |i| inline_header(lines[i]) }
+
     anchors.each_with_index do |anchor, pos|
-      header_end = anchor
-      header_start = pos.zero? ? 0 : anchors[pos - 1] + 1
-      header = lines[header_start...header_end].reject { |l| bullet?(l) }
-      header = header.last(2)
+      if inlines[pos].present?
+        header = [ inlines[pos] ]
+      else
+        header_start = pos.zero? ? 0 : anchors[pos - 1] + 1
+        header = lines[header_start...anchor].reject { |l| bullet?(l) }.last(2)
+      end
 
       next_anchor = anchors[pos + 1]
-      body_end = next_anchor ? [ next_anchor - 2, anchor + 1 ].max : lines.size
+      gap = next_anchor && inlines[pos + 1].blank? ? 2 : 0
+      body_end = next_anchor ? [ next_anchor - gap, anchor + 1 ].max : lines.size
       body = lines[(anchor + 1)...body_end] || []
 
       entry = build_entry(header, lines[anchor], body, mode, entries.last)
       entries << entry if entry
     end
     entries
+  end
+
+  # Projetos normalmente não têm período: cada linha "solta" abre um item e as
+  # linhas de bullet seguintes viram suas descrições.
+  def parse_undated(lines)
+    entries = []
+    lines.each do |line|
+      if bullet?(line)
+        entries.last[:bullets] << { "text" => line.sub(/\A[•\-–*▪]\s*/, "").strip } if entries.any?
+        next
+      end
+      name, _, description = line.partition(/\s+[·|•—–-]\s+/)
+      entries << { name: name.strip, url: line[URL_RE].to_s,
+                   description: description.strip, bullets: [], skills: [] }
+    end
+    entries.reject { |e| e[:name].blank? && e[:bullets].empty? }
+  end
+
+  # Texto antes do período na própria linha-âncora, em currículos que escrevem
+  # "Cargo, Empresa    jan 2020 - atual" numa linha só.
+  def inline_header(line)
+    line.sub(DATE_RANGE, "").sub(YEAR_RANGE, "").gsub(/\([^)]*\)/, "")
+        .gsub(/\A[\s·|,;:\-–—]+|[\s·|,;:\-–—]+\z/, "").strip
   end
 
   def build_entry(header, date_line, body, mode, previous)
@@ -244,8 +321,19 @@ class ResumeImport
       location = body.shift
     end
 
-    bullets = body.map { |line| line.sub(/\A[•\-–*▪]\s*/, "").strip }.reject(&:empty?)
-                  .map { |text| { "text" => text } }
+    # Linhas que não começam com marcador são continuação do bullet anterior
+    # (PDFs quebram bullets longos em várias linhas).
+    bullets = []
+    body.each do |line|
+      text = line.sub(/\A[•\-–*▪]\s*/, "").strip
+      next if text.empty?
+
+      if bullet?(line) || bullets.empty?
+        bullets << { "text" => text }
+      else
+        bullets.last["text"] += " #{text}"
+      end
+    end
 
     title, company = split_title_company(header)
     if company.blank? && previous
@@ -272,7 +360,11 @@ class ResumeImport
 
   def split_title_company(header)
     return [ nil, nil ] if header.empty?
-    return [ header.first, nil ] if header.size == 1
+
+    if header.size == 1
+      parts = header.first.split(/\s*[,;|·]\s*|\s+[-–—]\s+|\s+(?:at|na|no|em)\s+/i, 2)
+      return parts.size == 2 ? parts : [ header.first, nil ]
+    end
 
     first, second = header
 
@@ -288,11 +380,18 @@ class ResumeImport
       return [ second, first.sub(/\s*[·|,-]?\s*#{EMPLOYMENT_TYPE.source}.*/i, "").strip ]
     end
 
+    return [ second, first ] if second.match?(ROLE_HINT) && !first.match?(ROLE_HINT)
+    return [ first, second ] if first.match?(ROLE_HINT) && !second.match?(ROLE_HINT)
     return [ second, first ] if first.match?(COMPANY_HINT) && !second.match?(COMPANY_HINT)
     return [ first, second ] if second.match?(COMPANY_HINT) && !first.match?(COMPANY_HINT)
 
     [ first, second ] # padrão LinkedIn: cargo na primeira linha, empresa na segunda
   end
+
+  ROLE_HINT = /engineer|developer|desenvolvedor|engenheiro|manager|gerente|analyst|analista|designer|
+               consultant|consultor|intern|estagi|lead|l[íi]der|senior|s[êe]nior|junior|architect|arquiteto|
+               scientist|specialist|especialista|coordinator|coordenador|director|diretor|founder|fundador|
+               freelance|backend|frontend|full[- ]?stack|devops/i
 
   LOCATION_HINT = /\A[A-ZÀ-Ú][\p{L} .'-]+,\s*[\p{L} .'-]+\z|\bBrasil\b|\bBrazil\b|\bRemote\b|\bRemoto\b/i
 
@@ -307,7 +406,7 @@ class ResumeImport
   end
 
   def parse_dates(line)
-    dates = line.scan(DATE).map { |(_, year, month_token)| [ year, month_token ] }
+    tokens = line.scan(DATE)
     if tokens.any?
       start_month, start_year = tokens.first
       start_date = format("%04d-%02d", start_year, MONTHS[TextNormalizer.fold(start_month)])
@@ -337,10 +436,21 @@ class ResumeImport
 
     anchors.each_with_index.filter_map do |anchor, pos|
       start_at = pos.zero? ? 0 : anchors[pos - 1] + 1
-      header = lines[start_at...anchor]
-      start_date, end_date, current = parse_dates(lines[anchor])
-      institution = header.first.to_s
-      degree, field = split_degree_field(header.drop(1).join(" "))
+      header = (lines[start_at...anchor] + [ inline_header(lines[anchor]) ]).reject(&:empty?)
+      next if header.empty?
+
+      start_date, end_date, = parse_dates(lines[anchor])
+      institution_re = /universidad|university|faculdade|faculty|college|institut|school|escola/i
+      dedicated = header.index { |line| line.match?(institution_re) && !line.match?(/,/) }
+      if dedicated
+        institution = header[dedicated]
+        rest = (header - [ institution ]).join(" ")
+      else
+        parts = header.join(" ").split(/[,;·]/).map(&:strip).reject(&:empty?)
+        institution = parts.find { |p| p.match?(institution_re) } || parts.first
+        rest = (parts - [ institution ]).join(", ")
+      end
+      degree, field = split_degree_field(rest)
       next if institution.blank?
 
       { institution: institution, degree: degree, field: field,
@@ -357,10 +467,32 @@ class ResumeImport
     [ degree.to_s, field ]
   end
 
+  # Linhas "Backend: Node.js, ..." viram skills com a categoria do prefixo.
   def parse_skills(lines)
-    names = lines.flat_map { |line| line.split(/[,;•|·]/) }.map { |s| s.sub(/\A[•\-–*]\s*/, "").strip }
-                 .reject { |s| s.empty? || s.length > 60 || s.match?(/\d{4}/) }.uniq
-    names.map { |name| { name: name, category: nil, level: nil } }
+    entries = []
+    lines.each do |line|
+      category = nil
+      text = line
+      if line =~ /\A([^:]{2,30}):\s*(.+)\z/
+        category = Regexp.last_match(1).strip
+        text = Regexp.last_match(2)
+      end
+      text.split(/[,;•|·]/).each do |piece|
+        name = piece.sub(/\A[•\-–*]\s*/, "").strip
+        next if name.empty? || name.length > 60 || name.match?(/\d{4}/)
+
+        entries << { name: name, category: category, level: nil }
+      end
+    end
+    entries.uniq { |e| e[:name] }
+  end
+
+  # Seções combinadas ("Formação & Idiomas") misturam idiomas com formação;
+  # linhas com "(Nativo)", "(Fluent)" etc. são extraídas como idioma.
+  LEVEL_WORDS = /nativ|fluen|profession|profissional|b[áa]sic|intermedi|avan[çc]|biling|elementar/i
+
+  def language_lines(lines)
+    Array(lines).select { |l| l.match?(/\(/) && l.match?(LEVEL_WORDS) }
   end
 
   def parse_languages(lines)
@@ -368,7 +500,7 @@ class ResumeImport
       piece = piece.strip
       next if piece.empty? || piece.length > 60
 
-      if piece =~ /\A(.+?)\s*[([:;-]\s*(.+?)\)?\s*\z/
+      if piece =~ /\A(.+?)\s*[(\[:;-]\s*(.+?)\)?\s*\z/
         name, level = Regexp.last_match(1).strip, Regexp.last_match(2).sub(/\)\z/, "").strip
         { name: name, level: level.presence }
       else
